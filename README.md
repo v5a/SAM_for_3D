@@ -18,7 +18,7 @@
 2.需要将文本输入，需要将文本传入DINO中实现检测。
 
 background = pygame.transform.smoothscale(background, (500, 500)) 
-
-<iframe src="//player.bilibili.com/player.html?aid=740829167&bvid=BV1pk4y1j7od&cid=1121396423&page=1" scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="true"> </iframe>
+##演示视频
+https://user-images.githubusercontent.com/52237355/236663990-f779465a-5deb-426e-b1cd-c4abe0b6b2e3.mp4
 
 --------------------------------------------
