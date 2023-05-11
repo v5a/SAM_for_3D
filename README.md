@@ -25,3 +25,9 @@
 https://user-images.githubusercontent.com/52237355/236663990-f779465a-5deb-426e-b1cd-c4abe0b6b2e3.mp4
 
 --------------------------------------------
+
+## 自动标注
+
+运行DINO+SAM+GUI.py文件对单张图片实现自动标注
+
+https://github.com/v5a/SAM_for_3D/assets/52237355/6ed60f2d-958e-4c08-aa3c-03ab1dcf034d
