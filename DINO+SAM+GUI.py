@@ -26,6 +26,12 @@ import numpy as np
 import torch
 import matplotlib.pyplot as plt
 
+#----------------------------------------------#
+#保存为json文件
+#----------------------------------------------#
+from PIL import Image
+import json
+
 #pygame初始化
 pygame.init()
 
@@ -45,14 +51,13 @@ def show_mask(mask, ax, random_color=False):
 
 def to_show_mask(mask, random_color=False):
     if random_color:
-        color = np.concatenate([np.random.random(3), np.array([0.6])], axis=0)
+        color = np.concatenate([np.random.random(3)], axis=0)
     else:
-        color = np.array([30/255, 144/255, 255/255, 0.6])
+        color = np.array([30, 144, 255])
     h, w = mask.shape[-2:]
     mask_image = mask.reshape(h, w, 1) * color.reshape(1, 1, -1)
-    print("w")
-    # ax.imshow(mask_image)
-    return mask_image   
+    return mask_image     
+
 def show_points(coords, labels, ax, marker_size=375):
     pos_points = coords[labels==1]
     neg_points = coords[labels==0]
@@ -86,6 +91,8 @@ def load_model_hf(repo_id, filename, ckpt_config_filename, device='cpu'):
     cache_config_file = hf_hub_download(repo_id=repo_id, filename=ckpt_config_filename)
 
     args = SLConfig.fromfile(cache_config_file) 
+    # print(args,type(args))
+    # print("ddddddd")
     model = build_model(args)
     args.device = device
 
@@ -131,8 +138,10 @@ sam.to(device=device)
 
 predictor = SamPredictor(sam)
 
-img_src = 'images/dog.jpg'                      #自己的项目需要修改图片路径
+# img_src = 'images/dog.jpg'                      #自己的项目需要修改图片路径
 # img_src = 'assets/inpaint_demo.jpg'
+# img_src = 'assets\demo8.jpg'
+img_src = 'assets\demo7.jpg'
 # local_image_path = 'assets/inpaint_demo.jpg'
 #----------------------------------------------#
 #利用opencv传入图片
@@ -171,7 +180,7 @@ screen.blit(background,(0,0))
 #----------------------------------------------#
 
 font = pygame.font.Font(None, 32)
-input_box = pygame.Rect(image_resize.shape[1]+10, 150, 140, 32)
+input_box = pygame.Rect(image_resize.shape[1]+5, 150, 140, 32)
 color_inactive = pygame.Color('lightskyblue3')
 color_active = pygame.Color('dodgerblue2')
 color = color_inactive
@@ -179,6 +188,23 @@ active = False
 text = ''
 done = False
 
+'''
+masks = masks.astype('uint8') * 255
+                h, w = masks.shape[-2:]
+                masks = masks.reshape(h, w)
+
+                contours, _ = cv2.findContours(masks, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_TC89_KCOS)
+
+                # 这里取轮廓点数最多的（可能返回多个轮廓）
+                contour = contours[0]
+                for cont in contours:
+                    if len(cont) > len(contour):
+                        contour = cont
+
+                for point in contour:
+                    x, y = point[0]
+                    self.current_graph.addPoint(QtCore.QPointF(x, y))
+'''
 while True:
     #----------------------------------------------#
     #读入图片并监听鼠标
@@ -198,8 +224,15 @@ while True:
                     color_num = (255,0,0)
                 n = n+1
                 pygame.draw.circle(background,color_num,(int(point[0]/scale),int(point[1]/scale)),5)
-        if 'boxes_xyxy' in dir():
-            pygame.draw.rect(background, (0,0,0), [int(boxes_xyxy[0]/scale),int(boxes_xyxy[1]/scale),int((boxes_xyxy[2]-boxes_xyxy[0])/scale),int((boxes_xyxy[3]-boxes_xyxy[1])/scale)], 2)
+        # if 'boxes_xyxy' in dir():
+        #     pygame.draw.rect(background, (0,0,0), [int(boxes_xyxy[0]/scale),int(boxes_xyxy[1]/scale),int((boxes_xyxy[2]-boxes_xyxy[0])/scale),int((boxes_xyxy[3]-boxes_xyxy[1])/scale)], 2)
+        if 'boxes' in dir():
+            for box in boxes:
+                H, W, _ = image_source.shape
+                boxes_xyxy = box_ops.box_cxcywh_to_xyxy(box) * torch.Tensor([W, H, W, H])
+                # txt_surface = font.render("text", True, (0,255,0))
+                # screen.blit(txt_surface, (int(boxes_xyxy[0]/scale),int(boxes_xyxy[1]/scale)))
+                pygame.draw.rect(background, (0,255,0), [int(boxes_xyxy[0]/scale),int(boxes_xyxy[1]/scale),int((boxes_xyxy[2]-boxes_xyxy[0])/scale),int((boxes_xyxy[3]-boxes_xyxy[1])/scale)], 2)
         #监听键盘
         if event.type == pygame.KEYDOWN:
             screen.fill((255, 255, 255))
@@ -221,38 +254,53 @@ while True:
 
                         # box: normalized box xywh -> unnormalized xyxy
                         H, W, _ = image_source.shape
-                        boxes_xyxy = box_ops.box_cxcywh_to_xyxy(boxes[0]) * torch.Tensor([W, H, W, H])
+                        print("boxes",boxes)
+                        for box in boxes:
+                            boxes_xyxy = box_ops.box_cxcywh_to_xyxy(box) * torch.Tensor([W, H, W, H])
+                        # boxes_xyxy = box_ops.box_cxcywh_to_xyxy(boxes[0]) * torch.Tensor([W, H, W, H])
 
-                        transformed_boxes = predictor.transform.apply_boxes_torch(boxes_xyxy, image_source.shape[:2]).to("cuda")
+                            transformed_boxes = predictor.transform.apply_boxes_torch(boxes_xyxy, image_source.shape[:2]).to("cuda")
                         # if 'input_point' and 'input_label' not in dir():       #查看变量有没有定义，没有就加一个定义
                         #     input_point = None
                         #     input_label = None
-                        masks, _, _ = predictor.predict_torch(
+                            masks, _, _ = predictor.predict_torch(
                                     point_coords=None,
                                     point_labels=None,
                                     boxes = transformed_boxes,
                                     multimask_output = False,
                                 )
-                        # print(masks)
-                        # masks_1 = np.uint8(masks[0].cpu()*150)
-                        # c = np.concatenate([masks_1,masks_1,masks_1],axis=0)
-                        # c= c.transpose(1,2,0)
-                        # imgadd = cv2.add(image,c)
+                            masks = np.uint8(masks[0].cpu()*150)
+                            c = np.concatenate([masks,masks,masks],axis=0)
+                            c= c.transpose(1,2,0)
+                            #------------------------------------------#
+                            imgray = cv2.cvtColor(c, cv2.COLOR_BGR2GRAY)
+                            ret, thresh = cv2.threshold(imgray, 127, 255, 0)
+                            contours, _ = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
-                        # masks_2 = np.uint8(masks[1].cpu()*150)
-                        # c = np.concatenate([masks_2,masks_2,masks_2],axis=0)
-                        # c= c.transpose(1,2,0)
-                        # imgadd = cv2.add(imgadd,c)
-                        
-                        # print(masks.shape)
-                        masks = np.uint8(masks[0].cpu()*150)
-                        c = np.concatenate([masks,masks,masks],axis=0)
-                        c= c.transpose(1,2,0)
-                        imgadd = cv2.add(image,c)
+                            # 这里取轮廓点数最多的（可能返回多个轮廓）
+                            contour = contours[0]
+                            for cont in contours:
+                                if len(cont) > len(contour):
+                                    contour = cont
+                            print('contour',type(contour),contour.shape)
+                            if 'contour_list' in dir():
+                                contour_list.append(contour)
+                            else:
+                                contour_list = [contour]
+                            
+                            # print(contour)
+                            #------------------------------------------#
+                            if 'imgadd_' in dir():
+                                imgadd_ = cv2.add(imgadd_,c)
+                            else:
+                                imgadd_ = cv2.add(image,c)
 
-                        imgadd = cv2.resize(imgadd, (width_size, size))
+                        if 'imgadd_' not in dir():
+                            continue
+                        imgadd = cv2.resize(imgadd_, (width_size, size))
+                        del imgadd_
                         background = convert_opencv_img_to_pygame(imgadd)
-                        text = ''
+                        # text = ''
                     elif event.key == pygame.K_BACKSPACE:
                         text = text[:-1]
                     else:
@@ -261,6 +309,67 @@ while True:
             # if event.key == 13:
             #     print("ENTER")
             # print(chr(event.key))
+            if event.key == pygame.K_F4:
+                print("save")
+                __version__="5.2.0.post4"
+                flags={}
+                null=None
+                img = Image.open(img_src)
+                imgSize = img.size  #大小/尺寸
+                imageHeight = img.height  
+                imageWidth = img.width
+                filepath, tempfilename = os.path.split(img_src)
+                filename, extension = os.path.splitext(tempfilename)
+                imagePath_ = tempfilename
+                save_path = filepath+'\\'+filename+'.json'
+                for contour_ in contour_list:
+                    contours_ = contour_.reshape(-1,2).tolist()
+                    #-----------------shapes----------------#
+                    label=text#------#
+                    points=contours_
+                    group_id = None
+                    description=""
+                    shape_type="polygon"
+                    flags={}
+                    #-----------------shapes----------------#
+                    shape = {
+                        "label": label,
+                        "points":points,
+                        "group_id": group_id,
+                        "description": description,
+                        "shape_type": shape_type,
+                        "flags": flags
+                        }
+                    
+                    if 'shapes' in dir():
+                        shapes.append(shape)
+                    else:
+                        shapes = [shape]
+                imagePath=imagePath_
+                imageData = None
+                imageHeight = imageHeight
+                imageWidth = imageWidth
+
+                data = dict(
+                    version=__version__,
+                    flags=flags,
+                    shapes=shapes,
+                    imagePath=imagePath,
+                    imageData=imageData,
+                    imageHeight=imageHeight,
+                    imageWidth=imageWidth,
+                )
+
+                with open(save_path, "w") as f:
+                    json.dump(data, f, ensure_ascii=False, indent=2)
+                    text_save = font.render("save to:", True, (0,255,0))
+                    screen.blit(text_save, (image_resize.shape[1]+5, 5))
+                    text_save_word = font.render(save_path, True, (0,0,255))
+                    screen.blit(text_save_word, (image_resize.shape[1]+5, 25))
+                    print("save")
+                if 'shapes' in dir():
+                    del shapes
+                 
         #监听鼠标
         if event.type == pygame.MOUSEBUTTONDOWN:
             #----------------------------------------------#
@@ -307,18 +416,18 @@ while True:
                         #     print(input_label)
                             
                         if 'boxes_xyxy' not in dir():
-                            boxes = None
+                            boxes_ = None
                         else:
-                             boxes = boxes_xyxy.numpy().round()
+                             boxes_ = boxes_xyxy.numpy().round()
                             
                             #  boxes = np.array([351 ,233 ,624, 931])
                             #  boxes = np.array([233,351,931, 624])
-                             boxes = boxes[None, :]
-                             print("boxes:"+str(boxes))
+                             boxes_ = boxes_[None, :]
+                            #  print("boxes:"+str(boxes))
                         masks, scores, logits = predictor.predict(
                             point_coords=input_point,
                             point_labels=input_label,
-                            box = boxes,
+                            box = boxes_,
                             multimask_output=False,
                         )
                         # masks = ~masks   #反色
@@ -329,17 +438,43 @@ while True:
                         print(type(c))
                         print(c.shape)
                         c= c.transpose(1,2,0)
+                        #-----------------------------------------------#
+                        #find_contour
+                        #-----------------------------------------------#
+                        imgray = cv2.cvtColor(c, cv2.COLOR_BGR2GRAY)
+                        ret, thresh = cv2.threshold(imgray, 127, 255, 0)
+                        contours, _ = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+
+                        # 这里取轮廓点数最多的（可能返回多个轮廓）
+                        contour = contours[0]
+                        for cont in contours:
+                            if len(cont) > len(contour):
+                                contour = cont
+                        print('contour',type(contour),contour.shape)
+                        # if 'contour_list' in dir():
+                        #     contour_list.append(contour)
+                        # else:
+                        contour_list = [contour]
+                        #-----------------------------------------------#
+                        #find_contour
+                        #-----------------------------------------------#
                         imgadd = cv2.add(image,c)
                         imgadd = cv2.resize(imgadd, (width_size, size))
                         background = convert_opencv_img_to_pygame(imgadd)
                      #是否是鼠标中键
                      elif index == 1:
+                         screen.fill((255, 255, 255))
                          print('The mouse wheel Pressed!')
                          if 'input_point' and 'input_label' in dir(): 
                             del input_point
                             del input_label
+                         if 'boxes' in dir():
+                             del boxes
                          if 'boxes_xyxy' in dir():
                             del boxes_xyxy
+                         if 'contour_list' in dir():
+                             del contour_list
+                         text = ''
                          background = convert_opencv_img_to_pygame(image_resize)
                      #是否是鼠标右键
                      elif index == 2:
@@ -359,24 +494,44 @@ while True:
                             print(input_point)
                             print(input_label)
                          if 'boxes_xyxy' not in dir():
-                            boxes = None
+                            boxes_ = None
                          else:
-                             boxes = boxes_xyxy.numpy().round()
+                             boxes_ = boxes_xyxy.numpy().round()
                             
                             #  boxes = np.array([351 ,233 ,624, 931])
                             #  boxes = np.array([233,351,931, 624])
-                             boxes = boxes[None, :]
-                             print("boxes:"+str(boxes))
+                             boxes_ = boxes_[None, :]
+                            #  print("boxes:"+str(boxes))
                          masks, scores, logits = predictor.predict(
                             point_coords=input_point,
                             point_labels=input_label,
-                            box = boxes,
+                            box = boxes_,
                             multimask_output=False,
                         )
                         #  masks = ~masks    #反色
                          masks = np.uint8(masks*150)
                          c = np.concatenate([masks,masks,masks],axis=0)
                          c= c.transpose(1,2,0)
+                         #-----------------------------------------------#
+                        #find_contour
+                        #-----------------------------------------------#
+                         imgray = cv2.cvtColor(c, cv2.COLOR_BGR2GRAY)
+                         ret, thresh = cv2.threshold(imgray, 127, 255, 0)
+                         contours, _ = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+
+                        # 这里取轮廓点数最多的（可能返回多个轮廓）
+                         contour = contours[0]
+                         for cont in contours:
+                             if len(cont) > len(contour):
+                                 contour = cont
+                         print('contour',type(contour),contour.shape)
+                        #  if 'contour_list' in dir():
+                        #      contour_list.append(contour)
+                        #  else:
+                         contour_list = [contour]
+                        #-----------------------------------------------#
+                        #find_contour
+                        #-----------------------------------------------#
                          imgadd = cv2.add(image,c)
                          imgadd = cv2.resize(imgadd, (width_size, size))
                          background = convert_opencv_img_to_pygame(imgadd)
