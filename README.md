@@ -31,3 +31,11 @@ https://user-images.githubusercontent.com/52237355/236663990-f779465a-5deb-426e-
 运行DINO+SAM+GUI.py文件对单张图片实现自动标注
 
 https://github.com/v5a/SAM_for_3D/assets/52237355/6ed60f2d-958e-4c08-aa3c-03ab1dcf034d
+
+
+
+# 自动标注
+
+支持多种图片格式，利用grounding DINO实现自动标注。
+
+https://github.com/v5a/SAM_for_3D/assets/52237355/4ca64c3f-5fa4-4222-a422-ef06432bc074
