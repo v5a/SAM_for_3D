@@ -36,6 +36,8 @@ https://github.com/v5a/SAM_for_3D/assets/52237355/6ed60f2d-958e-4c08-aa3c-03ab1d
 
 # 自动标注
 
+[![链接](https://img.shields.io/badge/bilibili-%E8%A7%86%E9%A2%91-blue)](https://www.bilibili.com/video/BV1Vc411P7qj/)
+
 支持多种图片格式，利用grounding DINO实现自动标注。
 
 https://github.com/v5a/SAM_for_3D/assets/52237355/4ca64c3f-5fa4-4222-a422-ef06432bc074
