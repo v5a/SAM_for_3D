@@ -2,7 +2,7 @@ import tkinter
 from tkinter import filedialog
 from tkinter.filedialog import askdirectory
 from tkinter import *
-
+from tkinter import ttk
 import cv2
 import os
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
@@ -39,8 +39,8 @@ import json
 from huggingface_hub import hf_hub_download
 
 def load_model_hf(repo_id, filename, ckpt_config_filename, device='cpu'):
-    cache_config_file = hf_hub_download(repo_id=repo_id, filename=ckpt_config_filename)
-    
+    # cache_config_file = hf_hub_download(repo_id=repo_id, filename=ckpt_config_filename)
+    cache_config_file=r'C:\Users\Administrator\.cache\huggingface\hub\models--ShilongLiu--GroundingDINO\snapshots\a94c9b567a2a374598f05c584e96798a170c56fb\GroundingDINO_SwinB.cfg.py'
     # cache_config_file = r'GroundingDINO_SwinB.cfg.py'
     print('cache_config_file',type(cache_config_file),cache_config_file)
     args = SLConfig.fromfile(cache_config_file) 
@@ -48,8 +48,8 @@ def load_model_hf(repo_id, filename, ckpt_config_filename, device='cpu'):
     model = build_model(args)
     args.device = device
 
-    cache_file = hf_hub_download(repo_id=repo_id, filename=filename)
-    
+    # cache_file = hf_hub_download(repo_id=repo_id, filename=filename)
+    cache_file = r'C:\Users\Administrator\.cache\huggingface\hub\models--ShilongLiu--GroundingDINO\snapshots\a94c9b567a2a374598f05c584e96798a170c56fb\groundingdino_swinb_cogcoor.pth'
     # cache_file = r'groundingdino_swinb_cogcoor.pth'
     checkpoint = torch.load(cache_file, map_location='cpu')
     log = model.load_state_dict(clean_state_dict(checkpoint['model']), strict=False)
@@ -213,6 +213,17 @@ def autolabeling(img_src,text,shape_type="polygon"):
         imageHeight=imageHeight, 
         imageWidth=imageWidth,
     )
+    if os.access(save_path, os.F_OK):
+        with open(save_path, 'r') as f:
+            content = json.loads(f.read())
+            content_shapes = content['shapes']
+            content_shapes.extend(shapes)
+            content['shapes'] = content_shapes 
+            data = content
+        with open(save_path, 'w') as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        print("文件存在")
+        return
 
     with open(save_path, "w") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
@@ -251,8 +262,13 @@ def to_label(self):
     else:
         shape_type = 'rectangle'
     text = text_for_DINO.get()
+    progressbar['maximum']=len(global_names)
+    
     for src in global_names:
+        i = global_names.index(src)
         autolabeling(src,text,shape_type)
+        progressbar['value']=i+1
+        progressbar.update()
     return
 #-------------------------------------------------------------------------------------------------------------------------------------------------------#
 def open_labelme(self):
@@ -296,7 +312,10 @@ check2 = tkinter.Checkbutton(root, text='rectangle', variable=hobby2)#command=up
 check2.place(relx = 0.4, rely = 0.65)
 
 
-
+#进度条
+progressbar=ttk.Progressbar(root)
+#相对宽度
+progressbar.place(relx = 0 , rely = 0.97 , height = 8 , relwidth = 1)
 
 
 button1.bind("<ButtonRelease-1>", select_folder )#点击按钮时触发的行为，这里调用了poc函数。即点击按钮时只会调用这个函数，函数外的语句不会执行
