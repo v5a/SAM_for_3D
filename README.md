@@ -41,3 +41,10 @@ https://github.com/v5a/SAM_for_3D/assets/52237355/6ed60f2d-958e-4c08-aa3c-03ab1d
 支持多种图片格式，利用grounding DINO实现自动标注。
 
 https://github.com/v5a/SAM_for_3D/assets/52237355/4ca64c3f-5fa4-4222-a422-ef06432bc074
+
+
+
+## Stargazers over time
+
+[![Stargazers over time](https://starchart.cc/v5a/SAM_for_3D.svg)](https://starchart.cc/v5a/SAM_for_3D)
+
